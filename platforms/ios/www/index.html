@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html ng-app="app">
+  <head>
+    <title><%= title %></title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+  <style type="text/css">
+  body {padding: 0px}
+  #panel-body {
+    padding: 5px;
+    line-height: 1.6;
+  }
+  .item {font-size: 18px; line-height: 2}
+  .glyphicon-remove{color: red}
+  .container-fluid {margin-bottom: 10px}
+  .glyphicon-plus{font-size: 20px}
+  .accordion.active {background-color: #ddd;}
+  .accordion {background-color: #eee; margin-bottom: 2px}
+  .detail {display: none}
+  .detail.show {display: block !important;}
+  </style>
+
+    <ng-view></ng-view>
+
+    <!-- Libraries -->
+    <script type="text/javascript" src="cordova.js"></script> 
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-resource.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <!-- Template -->
+    <script type="text/ng-template" id="/todos.html">
+      <div class="panel panel-info">
+        <div class="panel-heading">
+          My todo list
+        </div>
+        <div id="panel-body" class="panel-body">
+          <div class="container-fluid">
+            <div class = "row">
+              <div class = "col-xs-10">
+                <input class = "form-control" placeholder = "new task" type="text" ng-model="newTodo">
+              </div>
+              <div class = "col-xs-1">
+                <a class="glyphicon glyphicon-plus"  ng-click="save()"></a>
+              </div>
+            </div>
+          </div>  
+          <div class="container-fluid">
+            <input class="form-control" id="focusedInput" ng-model="search.name" type="text" placeholder="Search">
+          </div>
+
+          <div class="container-fluid">
+            <div class = "item" ng-repeat="todo in todos | filter: search">
+              <div class="row accordion" onclick="expand(this)">
+                <div class="col-xs-9">
+                  <input type="checkbox" ng-show="!editing[$index]" ng-model="todo.completed" ng-change="update($index)" onclick="preventProp(event)">
+                  <a ng-show="!editing[$index]">{{todo.name}}</a>
+                  <div class="col-xs-9" ng-show="editing[$index]">
+                    <input class="form-control" type="text" ng-model="todo.name" onclick="preventProp(event)">
+                  </div>
+                </div>
+                <div class="col-xs-3">
+                  <span ng-show="editing[$index]" ng-click="update($index)" class="glyphicon glyphicon-ok" onclick="preventProp(event)"></span>
+                  <span ng-show="editing[$index]" ng-click="cancel($index)"class="glyphicon glyphicon-floppy-remove" onclick="preventProp(event)"></span>
+                
+                  <span class="glyphicon glyphicon-edit" ng-show="!editing[$index]" ng-click="edit($index)" onclick="preventProp(event)"></span>
+                  <span class="glyphicon glyphicon-remove" ng-show="!editing[$index]" ng-click="remove($index)"></span>
+                  
+                </div>
+              </div>
+              <div class="row detail">
+                <div class="col-xs-12">
+                  to-dos: <br>
+                  <li class="list-group-item list-group-item-success">
+                      <input type="text" placeholder="Add to-do" ng-model="todo.newTodoItem"> &nbsp
+                      <a class="glyphicon glyphicon-plus"  ng-click="addTodo($index)"></a>
+                  </li>
+                  <li class="list-group-item list-group-item-info" ng-repeat="todoItem in todo.items">
+                    <div class = "row">
+                      <div class = "col-xs-9" ng-show="!editingTodo[todoItem._id]">
+                        <input type="checkbox" ng-model="todoItem.completed" ng-change="updateTodo(todo._id, todoItem)"> {{todoItem.name}}
+                      </div>
+                      <div class="col-xs-9" ng-show="editingTodo[todoItem._id]">
+                        <input class="form-control" type="text" ng-model="todoItem.name" onclick="preventProp(event)">
+                      </div>
+                      <div class="col-xs-1">
+                        <span ng-show="editingTodo[todoItem._id]" ng-click="updateTodo(todo._id, todoItem)" class="glyphicon glyphicon-ok" onclick="preventProp(event)"></span>
+                       
+                      
+                        <span class="glyphicon glyphicon-edit" ng-show="!editingTodo[todoItem._id]" ng-click="editTodo(todoItem._id)" onclick="preventProp(event)"></span>
+                        
+                      </div>
+                      <div class="col-xs-1">
+                        
+                        <span ng-show="editingTodo[todoItem._id]" ng-click="editTodo(todoItem._id)"class="glyphicon glyphicon-floppy-remove" onclick="preventProp(event)"></span>
+                      
+                        
+                        <span class="glyphicon glyphicon-remove" ng-show="!editingTodo[todoItem._id]" ng-click="removeTodo(todo, $index)"></span>
+                      </div>
+                    </div>
+                  </li>
+                </div>
+              </div>
+              </div>
+            </div>
+
+           </div>
+
+        </div>
+      </div>
+      
+    </script>
+
+    <script type="text/ng-template" id="/todoDetails.html">
+      <h1>{{ todo.name }}</h1>
+      completed: <input type="checkbox" ng-model="todo.completed"><br>
+      note: <textarea ng-model="todo.note"></textarea><br><br>
+
+      <button ng-click="update()">update</button>
+      <button ng-click="remove()">remove</button>
+      <a href="/">Cancel</a>
+    </script>
+    <script type="text/javascript">
+    function preventProp(event) {
+      event.stopPropagation();
+    }
+    function expand(ele) {
+      ele.classList.toggle("active");
+      ele.nextElementSibling.classList.toggle("show");
+      ele.scrollIntoView();
+    }
+    </script>
+    <script>
+      angular.module('app', ['ngRoute', 'ngResource'])
+
+        //---------------
+        // Services
+        //---------------
+
+        .factory('Todos', ['$resource', function($resource){
+          return $resource('http://nodejs-yunhancheng.rhcloud.com/todos/:id', null);
+        }])
+
+        //---------------
+        // Controllers
+        //---------------
+
+        .controller('TodoController', ['$scope', 'Todos', '$http', '$timeout', function ($scope, Todos, $http, $timeout) {
+          $scope.editing = [];
+          $scope.editingTodo = {};
+          $scope.todos = Todos.query();
+
+          $scope.save = function(){
+            if(!$scope.newTodo || $scope.newTodo.length < 1) return;
+            var todo = new Todos({ name: $scope.newTodo, completed: false});
+
+            todo.$save(function(){
+              $scope.todos.push(todo);
+              $scope.newTodo = ''; // clear textbox
+            });
+          }
+
+          $scope.updateTodo = function(id, item) {
+            jQuery.ajax({
+              type: 'POST',
+              // make sure you respect the same origin policy with this url:
+              // http://en.wikipedia.org/wiki/Same_origin_policy
+              url: 'http://nodejs-yunhancheng.rhcloud.com/todos/updateTodo/'+id,
+              data: { 
+                  'id': item._id,
+                  'name': item.name,
+                  'completed': item.completed 
+              },
+              success: function(msg){
+                console.log(msg);
+              }
+            });
+            $scope.editingTodo[item._id] = false;
+          }
+
+          $scope.addTodo = function (id) {
+            var todo = $scope.todos[id];
+            if(!todo.newTodoItem || todo.newTodoItem.length < 1) return;
+            if (!todo.items) {
+              todo.items = [];
+            }
+            var item = {};
+            item.name = todo.newTodoItem;
+            item.completed = false;
+            jQuery.ajax({
+              type: 'POST',
+              // make sure you respect the same origin policy with this url:
+              // http://en.wikipedia.org/wiki/Same_origin_policy
+              url: 'http://nodejs-yunhancheng.rhcloud.com/todos/addTodo/'+todo._id,
+              data: { 
+                  'name': todo.newTodoItem, 
+              },
+              success: function(msg){
+                $timeout(function () {
+                  item._id = msg.items.pop()._id;
+                  todo.items.push(item);
+                  todo.newTodoItem = ""; 
+                }, 0);
+              }
+            });
+          }
+
+          $scope.update = function(index){
+            var todo = $scope.todos[index];
+
+            jQuery.ajax({
+              type: 'POST',
+              // make sure you respect the same origin policy with this url:
+              // http://en.wikipedia.org/wiki/Same_origin_policy
+              url: 'http://nodejs-yunhancheng.rhcloud.com/todos/'+todo._id,
+              data: { 
+                  'name': todo.name, 
+                  'completed': todo.completed,
+                  'note': todo.note // <-- the $ sign in the parameter name seems unusual, I would avoid it
+              },
+              success: function(msg){
+                 
+              }
+            });
+            $scope.editing[index] = false;
+          }
+
+          $scope.editTodo = function(id) {
+            if ($scope.editingTodo[id]) {
+              $scope.editingTodo[id] = false;
+            } else {
+              $scope.editingTodo[id] = true;
+            }
+          }
+
+          $scope.edit = function(index){
+            $scope.editing[index] = angular.copy($scope.todos[index]);
+          }
+
+          $scope.cancel = function(index){
+            $scope.todos[index] = angular.copy($scope.editing[index]);
+            $scope.editing[index] = false;
+          }
+
+          $scope.removeTodo = function(todo, index){
+            jQuery.ajax({
+              type: 'POST',
+              // make sure you respect the same origin policy with this url:
+              // http://en.wikipedia.org/wiki/Same_origin_policy
+              url: 'http://nodejs-yunhancheng.rhcloud.com/todos/removeTodo/'+todo._id,
+              data: { 
+                  'id': todo.items[index]._id
+              },
+
+              success: function() {
+                $timeout(function () {
+                  todo.items.splice(index, 1);
+                }, 0);
+              }
+            });
+            
+          }
+
+          $scope.remove = function(index){
+            var todo = $scope.todos[index];
+            Todos.remove({id: todo._id}, function(){
+              $scope.todos.splice(index, 1);
+            });
+          }
+
+        }])
+
+        .controller('TodoDetailCtrl', ['$scope', '$routeParams', 'Todos', '$location', '$http', function ($scope, $routeParams, Todos, $location, $http) {
+          $scope.todo = Todos.get({id: $routeParams.id });
+
+          $scope.update = function(){
+            jQuery.ajax({
+              type: 'POST',
+              // make sure you respect the same origin policy with this url:
+              // http://en.wikipedia.org/wiki/Same_origin_policy
+              url: 'http://nodejs-yunhancheng.rhcloud.com/todos/'+$scope.todo._id,
+              data: { 
+                  'name': $scope.todo.name, 
+                  'completed': $scope.todo.completed,
+                  'note': $scope.todo.note // <-- the $ sign in the parameter name seems unusual, I would avoid it
+              },
+              success: function(msg){
+                 
+              }
+            });
+            $location.url('/');
+          }
+
+          $scope.remove = function(){
+            Todos.remove({id: $scope.todo._id}, function(){
+              $location.url('/');
+            });
+          }
+        }])
+
+        //---------------
+        // Routes
+        //---------------
+
+        .config(['$routeProvider', function ($routeProvider) {
+          $routeProvider
+            .when('/', {
+              templateUrl: '/todos.html',
+              controller: 'TodoController'
+            })
+
+            .when('/:id', {
+              templateUrl: '/todoDetails.html',
+              controller: 'TodoDetailCtrl'
+           });
+        }]);
+    </script>
+  </body>
+</html>
